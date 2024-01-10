@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', changelog: false, credentialsId: 'e4b31f98-5855-423d-b2d0-4ae90c936853', poll: false, url: 'https://github.com/thungasaikumar/node-sample.git'
+            }
+        }
+        
+        stage('Dependency') {
+            steps {
+                sh 'mkdir -p $HOME/.npm-global'
+                sh 'npm config set prefix $HOME/.npm-global'
+                sh 'export PATH=$HOME/.npm-global/bin:$PATH'
+                sh 'npm install -g npm@10.2.5'
+            }
+        }
+        
+        stage('sonar-scan') {
+            steps {
+                script{
+                    withSonarQubeEnv(credentialsId: '30ec5f12-c8a9-48d7-a71d-749653034674') {
+                        def scannerHome = tool 'sonar-scanner';
+                        withSonarQubeEnv('sonar-server') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                sh 'npm build'
+            }
+        }
+    }
+}
